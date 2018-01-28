@@ -9,6 +9,8 @@ const Serverless = require('serverless/lib/Serverless')
 const AwsProvider = require('serverless/lib/plugins/aws/provider/awsProvider')
 const AlexaDevServer = require('../src')
 const path = require('path')
+const fs = require('fs')
+const helloMp3 = fs.readFileSync(path.join(__dirname, 'HelloEnglish-Joanna.0aa7a6dc7f1de9ac48769f366c6f447f9051db57.mp3'))
 
 chai.use(chaiAsPromised)
 const expect = chai.expect
@@ -104,6 +106,43 @@ describe('index.js', () => {
       }),
       sendHttpPostRequest(5005, 'shorthand', {}).then(result => {
         expect(result.status).equal(204)
+      })
+    ])
+  })
+
+  it('should start a server and accept http requests that return binary', () => {
+    serverless.service.functions = {
+      'MyHttpResourceBinary': {
+        handler: 'lambda-handler.httpGetBinary',
+        events: [{http: {method: 'GET', path: '/binary'}}]
+      },
+      'MyHttpResourceBinaryBase64': {
+        handler: 'lambda-handler.httpGetBinaryBase64',
+        events: [{http: {method: 'GET', path: '/binary-base64'}}]
+      },
+      'MyHttpResourceBinaryBase64WithoutEncoding': {
+        handler: 'lambda-handler.httpGetBinaryBase64WithoutEncoding',
+        events: [{http: {method: 'GET', path: '/binary-base64-without-encoding'}}]
+      }
+    }
+    alexaDevServer = new AlexaDevServer(serverless)
+    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
+    alexaDevServer.hooks['local-dev-server:start']()
+    return Promise.all([
+      sendHttpGetRequest(5005, 'binary').then(result => {
+        expect(result.status).equal(200)
+        return result.buffer().then(buffer => {
+          expect(buffer.toString('base64')).equal(helloMp3.toString('base64'))
+        })
+      }),
+      sendHttpGetRequest(5005, 'binary-base64').then(result => {
+        expect(result.status).equal(200)
+        return result.buffer().then(buffer => {
+          expect(buffer.toString('base64')).equal(helloMp3.toString('base64'))
+        })
+      }),
+      sendHttpGetRequest(5005, 'binary-base64-without-encoding').then(result => {
+        expect(result.status).equal(500)
       })
     ])
   })

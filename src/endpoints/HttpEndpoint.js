@@ -28,7 +28,9 @@ class HttpEndpoint extends Endpoint {
       response.set(result.headers)
     }
     response.status(result.statusCode)
-    response.send(result.body === 'object' ? JSON.stringify(result.body) : result.body)
+    const body = result.body === 'object' ? JSON.stringify(result.body) : result.body
+    if (result.isBase64Encoded && typeof body !== 'string') throw new Error('the body is not a base64 encoded string')
+    response.send(result.isBase64Encoded ? Buffer.from(body, 'base64') : body)
   }
 
   toString () {

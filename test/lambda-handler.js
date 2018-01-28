@@ -1,5 +1,9 @@
 'use strict'
 
+const path = require('path')
+const fs = require('fs')
+const helloMp3 = fs.readFileSync(path.join(__dirname, 'HelloEnglish-Joanna.0aa7a6dc7f1de9ac48769f366c6f447f9051db57.mp3'))
+
 // Invokes the succeed callback
 module.exports.succeed = (_, context) => {
   context.succeed()
@@ -39,6 +43,50 @@ module.exports.httpGet = (request, context) => {
       headers: {'Content-Type': 'application/json'},
       statusCode: 200,
       body: request
+    })
+  }
+}
+
+module.exports.httpGetBinary = (request, context) => {
+  if (request.httpMethod !== 'GET') {
+    context.fail(new Error('httpMethod should be GET'))
+  } else if (request.body.toString() !== '{}') {
+    context.fail(new Error('body should be empty'))
+  } else {
+    context.succeed({
+      headers: {'Content-Type': 'audio/mpeg'},
+      statusCode: 200,
+      body: helloMp3
+    })
+  }
+}
+
+module.exports.httpGetBinaryBase64 = (request, context) => {
+  if (request.httpMethod !== 'GET') {
+    context.fail(new Error('httpMethod should be GET'))
+  } else if (request.body.toString() !== '{}') {
+    context.fail(new Error('body should be empty'))
+  } else {
+    context.succeed({
+      headers: {'Content-Type': 'audio/mpeg'},
+      statusCode: 200,
+      body: helloMp3.toString('base64'),
+      isBase64Encoded: true
+    })
+  }
+}
+
+module.exports.httpGetBinaryBase64WithoutEncoiding = (request, context) => {
+  if (request.httpMethod !== 'GET') {
+    context.fail(new Error('httpMethod should be GET'))
+  } else if (request.body.toString() !== '{}') {
+    context.fail(new Error('body should be empty'))
+  } else {
+    context.succeed({
+      headers: {'Content-Type': 'audio/mpeg'},
+      statusCode: 200,
+      body: helloMp3,
+      isBase64Encoded: true
     })
   }
 }
