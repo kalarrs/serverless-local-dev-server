@@ -19,7 +19,8 @@ class HttpEndpoint extends Endpoint {
       httpMethod: request.method,
       body: JSON.stringify(request.body, null, '  '),
       queryStringParameters: request.query,
-      pathParameters: request.params || {}
+      pathParameters: request.params || {},
+      headers: request.headers || {}
     }
   }
 
