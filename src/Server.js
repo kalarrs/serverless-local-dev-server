@@ -112,6 +112,7 @@ class Server {
   // Loads and executes the Lambda handler
   _executeLambdaHandler (func, event) {
     return new Promise((resolve, reject) => {
+      let isPromise = false
       // Load local development environment variables
       const localEnvironment = Object.assign({},
         dotenv.config({path: '.env.local'}).parsed,
@@ -121,10 +122,15 @@ class Server {
       process.env = Object.assign({}, this.processEnvironment, func.environment, localEnvironment)
       const handle = require(func.handlerModulePath)[func.handlerFunctionName]
       const context = {succeed: resolve, fail: reject}
-      const callback = (error, result) => (!error) ? resolve(result) : reject(error)
+      const callback = (error, result) => {
+        if (isPromise) return
+        return !error ? resolve(result) : reject(error)
+      }
 
       // Execute it!
-      handle(event, context, callback)
+      let result = handle(event, context, callback)
+      isPromise = result instanceof Promise
+      if (isPromise) resolve(result)
     })
   }
 }

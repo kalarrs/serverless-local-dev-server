@@ -47,6 +47,21 @@ module.exports.httpGet = (request, context) => {
   }
 }
 
+// Succeed if request object has correct form, returning the request object
+module.exports.httpGetAsync = async (request) => {
+  if (request.httpMethod !== 'GET') {
+    throw new Error('httpMethod should be GET')
+  } else if (request.body.toString() !== '{}') {
+    throw new Error('body should be empty')
+  } else {
+    return {
+      headers: {'Content-Type': 'application/json'},
+      statusCode: 200,
+      body: request
+    }
+  }
+}
+
 module.exports.httpGetBinary = (request, context) => {
   if (request.httpMethod !== 'GET') {
     context.fail(new Error('httpMethod should be GET'))

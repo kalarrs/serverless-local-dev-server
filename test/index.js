@@ -74,6 +74,10 @@ describe('index.js', () => {
         handler: 'lambda-handler.httpGet',
         events: [{http: {method: 'GET', path: '/'}}]
       },
+      'MyHttpResourceAsync': {
+        handler: 'lambda-handler.httpGetAsync',
+        events: [{http: {method: 'GET', path: '/'}}]
+      },
       'MyHttpResourceID': {
         handler: 'lambda-handler.httpGet',
         events: [{http: {method: 'GET', path: '/:id'}}]
@@ -90,6 +94,14 @@ describe('index.js', () => {
       sendAlexaRequest(5005, 'MyAlexaSkill').then(result =>
         expect(result.ok).equal(true)
       ),
+      sendHttpGetRequest(5005, '?a=b&c=d').then(result => {
+        expect(result.status).equal(200)
+        return result.json().then(json => {
+          expect(json.queryStringParameters.a).equal('b')
+          expect(json.queryStringParameters.c).equal('d')
+          expect(json.pathParameters).eql({})
+        })
+      }),
       sendHttpGetRequest(5005, '?a=b&c=d').then(result => {
         expect(result.status).equal(200)
         return result.json().then(json => {
