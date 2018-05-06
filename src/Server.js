@@ -36,7 +36,7 @@ class Server {
       this.functions.forEach(func => {
         this.log(`${func.name}:`)
         func.endpoints.forEach(endpoint => {
-          this.log(`  ${endpoint.method} http://localhost:${port}${endpoint.path}`)
+          this.log(`  ${endpoint.method.toUpperCase()} http://localhost:${port}${endpoint.path}`)
         })
       })
       if (this.staticFolder) {
