@@ -91,7 +91,7 @@ module.exports.httpGetBinaryBase64 = (request, context) => {
   }
 }
 
-module.exports.httpGetBinaryBase64WithoutEncoiding = (request, context) => {
+module.exports.httpGetBinaryBase64WithoutEncoding = (request, context) => {
   if (request.httpMethod !== 'GET') {
     context.fail(new Error('httpMethod should be GET'))
   } else if (request.body.toString() !== '{}') {
@@ -116,5 +116,21 @@ module.exports.httpPost = (request, context) => {
     context.succeed({
       statusCode: 204
     })
+  }
+}
+
+module.exports.schedule = (request, context) => {
+  if (request.account !== '123456789012') {
+    context.fail(new Error('event should be a mock AWS schedule event'))
+  } else {
+    context.succeed()
+  }
+}
+
+module.exports.scheduleCustomInput = (request, context) => {
+  if (request.key !== 'value') {
+    context.fail(new Error('event should be custom event'))
+  } else {
+    context.succeed()
   }
 }
