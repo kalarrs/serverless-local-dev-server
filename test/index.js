@@ -33,6 +33,10 @@ describe('index.js', () => {
     return fetch(`http://localhost:${port}/http/${path}`)
   }
 
+  const sendScheduleGetRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/schedule/${path}`)
+  }
+
   const sendHttpPostRequest = (port, path) => {
     return fetch(`http://localhost:${port}/http/${path}`, {
       method: 'POST',
@@ -85,7 +89,15 @@ describe('index.js', () => {
       'MyShorthandHttpResource': {
         handler: 'lambda-handler.httpPost',
         events: [{http: 'POST shorthand'}]
-      }
+      },
+      'MySchedule': {
+        handler: 'lambda-handler.schedule',
+        events: [{schedule: 'rate(1 day)'}, {schedule: 'cron(0 23 ? * MON-FRI)'}]
+      },
+      'MyScheduleCustomInput': {
+        handler: 'lambda-handler.scheduleCustomInput',
+        events: [{schedule: {rate: 'rate(10 minute)', enabled: true, input: {key: 'value', arr: [1, 2]}}}]
+      },
     }
     alexaDevServer = new AlexaDevServer(serverless)
     alexaDevServer.hooks['local-dev-server:loadEnvVars']()
@@ -118,6 +130,15 @@ describe('index.js', () => {
       }),
       sendHttpPostRequest(5005, 'shorthand', {}).then(result => {
         expect(result.status).equal(204)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-11:00-PM-Monday-through-Friday', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
+        expect(result.status).equal(200)
       })
     ])
   })
@@ -194,8 +215,8 @@ describe('index.js', () => {
   })
 
   it('should set environment variables correctly', () => {
-    serverless.service.provider.profile = 'default';
-    serverless.service.provider.region = 'us-west-2';
+    serverless.service.provider.profile = 'default'
+    serverless.service.provider.region = 'us-west-2'
     serverless.service.provider.environment = {
       foo: 'bar',
       bla: 'blub',
