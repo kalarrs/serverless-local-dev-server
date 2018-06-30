@@ -2,6 +2,7 @@
 
 const Endpoint = require('./Endpoint')
 const cronstrue = require('cronstrue')
+const moment = require('moment')
 
 class ScheduleEndpoint extends Endpoint {
   constructor (scheduleConfig, func) {
@@ -13,9 +14,23 @@ class ScheduleEndpoint extends Endpoint {
     this.input = scheduleConfig.input || null
 
     let rateInEnglish = ''
-    if (scheduleConfig.rate.startsWith('cron')) rateInEnglish = 'cron-' + cronstrue.toString(scheduleConfig.rate.replace(/^cron\((.*?)\)/g, '$1')).replace(',', '')
+    let suffix = ''
+    if (scheduleConfig.rate.startsWith('cron')) {
+      suffix = func.config.showLocalTime ? '-LOCAL' : '-UTC'
+      let cronExpression = scheduleConfig.rate.replace(/^cron\((.*?)\)/g, '$1')
+      let cronParts = cronExpression.split(' ')
+      if (cronParts.length !== 6) throw new Error('Cron expression should contain 6 parts. See https://docs.aws.amazon.com/lambda/latest/dg/tutorial-scheduled-events-schedule-expressions.html')
+      if (func.config.showLocalTime) {
+        cronExpression = [
+          ...cronParts.slice(0, 1),
+          moment().utc().hours(cronParts[1]).minutes(0).local().hours(),
+          ...cronParts.slice(2)
+        ].join(' ')
+      }
+      rateInEnglish = 'cron-' + cronstrue.toString(`0 ${cronExpression}`).replace(',', '')
+    }
     if (scheduleConfig.rate.startsWith('rate')) rateInEnglish = 'rate-' + scheduleConfig.rate.replace(/^rate\((.*?)\)/g, '$1')
-    this.resourcePath = rateInEnglish.replace(/\(|\)|\s+/g, '-').replace(/(^\/|(\/|-)$)/g, '')
+    this.resourcePath = rateInEnglish.replace(/\(|\)|\s+/g, '-').replace(/(^\/|(\/|-)$)/g, '') + suffix
     this.path = '/schedule/' + func.name + '/' + this.resourcePath
   }
 
