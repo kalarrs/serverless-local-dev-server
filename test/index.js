@@ -138,25 +138,25 @@ describe('index.js', () => {
       sendScheduleGetRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-10:00-AM', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-10:00-AM-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-12:15-PM', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-12:15-PM-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-06:00-PM-Monday-through-Friday', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-06:00-PM-Monday-through-Friday-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-08:00-AM-on-day-1-of-the-month', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-08:00-AM-on-day-1-of-the-month-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-10-minutes-Monday-through-Friday', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-10-minutes-Monday-through-Friday-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-5-minutes-between-08:00-AM-and-05:59-PM,-Monday-through-Friday', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-5-minutes-between-08:00-AM-and-05:59-PM,-Monday-through-Friday-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-09:00-AM-on-the-first-Tuesday-of-the-month', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-09:00-AM-on-the-first-Tuesday-of-the-month-UTC', {}).then(result => {
         expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
@@ -395,5 +395,27 @@ describe('index.js', () => {
     localDevServer = new LocalDevServer(serverless, {port: 5009})
     localDevServer.hooks['local-dev-server:loadEnvVars']()
     expect(localDevServer.hooks['local-dev-server:start']).to.throw()
+  })
+
+  it('should show hour for cron as local time if localDevScheduleShowLocalTime is set to true', () => {
+    serverless.service.functions = {
+      'MySchedule': {
+        handler: 'lambda-handler.schedule',
+        events: [{schedule: 'cron(0 8 * * ? *)'}]
+      }
+    }
+    serverless.service.plugins = ['serverless-domain-manager']
+    serverless.service.custom = {
+      localDevScheduleShowLocalTime: true
+    }
+
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    return Promise.all([
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-01:00-AM-LOCAL', {}).then(result => {
+        expect(result.status).equal(200)
+      })
+    ])
   })
 })

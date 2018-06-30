@@ -68,6 +68,7 @@ class Server {
           }
         }
       }
+      config.showLocalTime = serverlessConfig.custom && serverlessConfig.custom.localDevScheduleShowLocalTime
       return {
         name: name,
         config: config,

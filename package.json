@@ -9,7 +9,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/exocom/serverless-local-dev-server"
+    "url": "https://github.com/kalarrs/serverless-local-dev-server"
   },
   "keywords": [
     "serverless",

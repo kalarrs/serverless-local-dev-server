@@ -1,20 +1,17 @@
 Serverless Local Dev Server Plugin With Multi Project Support
 =============================================================
 
-[![Build Status](https://travis-ci.org/exocom/serverless-local-dev-server.svg)](https://travis-ci.org/exocom/serverless-local-dev-server)
+[![Build Status](https://travis-ci.org/kalarrs/serverless-local-dev-server.svg)](https://travis-ci.org/kalarrs/serverless-local-dev-server)
 
 ### This is a fork of the Local Dev Server Plugin from  [DieProduktMacher/serverless-local-dev-server](https://github.com/DieProduktMacher/serverless-local-dev-server)
 
-This plugin exposes Alexa-Skill and HTTP events as local HTTP endpoints, removing the need to deploy every code change to AWS Lambda. You can connect these endpoints to Alexa, Facebook Messenger or other services via forwardhq, ngrok or any other forwarding service.
+This plugin exposes Alexa-Skill, Schedule, and HTTP events as local HTTP endpoints, removing the need to deploy every code change to AWS Lambda. You can connect these endpoints to Alexa, Facebook Messenger or other services via forwardhq, ngrok or any other forwarding service.
 
 Supported features:
 
-* Expose `alexa-skill` and `http` events as local HTTP endpoints
+* Expose `alexa-skill`, `schedule`, and `http` events as local HTTP endpoints
 * Environment variables
 * Basic HTTP integration
-* Auto reload via nodemon (see *How To*)
-
-This package requires node >= 6.0
 
 
 # How To
@@ -22,17 +19,17 @@ This package requires node >= 6.0
 ### 1. Install the plugin
 
 ```sh
-npm install @kalarrs/serverless-local-dev-server --save-dev
+yarn add @kalarrs/serverless-local-dev-server --dev
 ```
 
-### 2. Add the plugin to your serverless configuration file
+### 2. Add the plugin to your serverless project configuration file
 
 *serverless.yml* configuration example:
 
 ```yaml
 provider:
   name: aws
-  runtime: nodejs6.10
+  runtime: nodejs8.10
 
 functions:
   hello:
@@ -40,6 +37,7 @@ functions:
     events:
       - alexaSkill
       - http: GET /hello
+      - schedule: rate(1 day)
 
 # Add serverless-local-dev-server to your plugins:
 plugins:
@@ -50,6 +48,8 @@ custom:
   localDevStaticFolder: path/to/static/files
   # optional: set the port the server starts on
   localDevPort: 5000
+  # optional: set the path name for schedule to be in local vs utc
+  localDevScheduleShowLocalTime: true
 ```
 
 
@@ -69,12 +69,6 @@ serverless local-dev-server --port 5000
 You can also set the port in the serverless.yml
 ```yaml
   localDevPort: 5000
-```
-
-To automatically restart the server when files change, you may use nodemon:
-
-```sh
-nodemon --exec "serverless local-dev-server" -e "js yml json"
 ```
 
 To see responses returned from Lambda and stack traces, prepend SLS_DEBUG=*
