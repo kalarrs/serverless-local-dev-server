@@ -7,7 +7,7 @@ const fetch = require('node-fetch')
 const sinon = require('sinon')
 const Serverless = require('serverless/lib/Serverless')
 const AwsProvider = require('serverless/lib/plugins/aws/provider/awsProvider')
-const AlexaDevServer = require('../src')
+const LocalDevServer = require('../src')
 const path = require('path')
 const fs = require('fs')
 const helloMp3 = fs.readFileSync(path.join(__dirname, 'HelloEnglish-Joanna.0aa7a6dc7f1de9ac48769f366c6f447f9051db57.mp3'))
@@ -16,7 +16,7 @@ chai.use(chaiAsPromised)
 const expect = chai.expect
 
 describe('index.js', () => {
-  let sandbox, serverless, alexaDevServer
+  let sandbox, serverless, localDevServer
 
   const sendAlexaRequest = (port, name) => {
     return fetch(`http://localhost:${port}/alexa-skill/${name}`, {
@@ -58,14 +58,14 @@ describe('index.js', () => {
   })
 
   afterEach((done) => {
-    if (alexaDevServer && alexaDevServer.server && alexaDevServer.server.server) alexaDevServer.server.server.close()
+    if (localDevServer && localDevServer.server && localDevServer.server.server) localDevServer.server.server.close()
     sandbox.restore()
     done()
   })
 
   it('should have hooks', () => {
-    alexaDevServer = new AlexaDevServer(serverless)
-    expect(Object.keys(alexaDevServer.hooks).length).to.not.equal(0)
+    localDevServer = new LocalDevServer(serverless)
+    expect(Object.keys(localDevServer.hooks).length).to.not.equal(0)
   })
 
   it('should start a server and accept various requests', () => {
@@ -92,16 +92,20 @@ describe('index.js', () => {
       },
       'MySchedule': {
         handler: 'lambda-handler.schedule',
-        events: [{schedule: 'rate(1 day)'}, {schedule: 'cron(0 23 ? * MON-FRI)'}]
+        events: [
+          {schedule: 'rate(1 day)'}, {schedule: 'cron(0 10 * * ? *)'}, {schedule: 'cron(15 12 * * ? *)'},
+          {schedule: 'cron(0 18 ? * MON-FRI *)'}, {schedule: 'cron(0 8 1 * ? *)'}, {schedule: 'cron(0/10 * ? * MON-FRI *)'},
+          {schedule: 'cron(0/5 8-17 ? * MON-FRI *)'}, {schedule: 'cron(0 9 ? * 2#1 *)'}
+        ]
       },
       'MyScheduleCustomInput': {
         handler: 'lambda-handler.scheduleCustomInput',
         events: [{schedule: {rate: 'rate(10 minute)', enabled: true, input: {key: 'value', arr: [1, 2]}}}]
       },
     }
-    alexaDevServer = new AlexaDevServer(serverless)
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
       sendAlexaRequest(5005, 'MyAlexaSkill').then(result =>
         expect(result.ok).equal(true)
@@ -134,7 +138,25 @@ describe('index.js', () => {
       sendScheduleGetRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
         expect(result.status).equal(200)
       }),
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-11:00-PM-Monday-through-Friday', {}).then(result => {
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-10:00-AM', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-12:15-PM', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-06:00-PM-Monday-through-Friday', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-08:00-AM-on-day-1-of-the-month', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-10-minutes-Monday-through-Friday', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-Every-5-minutes-between-08:00-AM-and-05:59-PM,-Monday-through-Friday', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, 'MySchedule/cron-At-09:00-AM-on-the-first-Tuesday-of-the-month', {}).then(result => {
         expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
@@ -158,9 +180,9 @@ describe('index.js', () => {
         events: [{http: {method: 'GET', path: '/binary-base64-without-encoding'}}]
       }
     }
-    alexaDevServer = new AlexaDevServer(serverless)
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
       sendHttpGetRequest(5005, 'binary').then(result => {
         expect(result.status).equal(200)
@@ -187,9 +209,9 @@ describe('index.js', () => {
         events: [{http: 'GET /'}]
       }
     }
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5006})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless, {port: 5006})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return sendHttpGetRequest(5006, '').then(result =>
       expect(result.ok).equal(true)
     )
@@ -206,9 +228,9 @@ describe('index.js', () => {
       localDevPort: '5007'
     }
 
-    alexaDevServer = new AlexaDevServer(serverless)
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return sendHttpGetRequest(5007, '').then(result =>
       expect(result.ok).equal(true)
     )
@@ -235,9 +257,9 @@ describe('index.js', () => {
       environment: {la: 'lala'},
       port: 5007
     }
-    alexaDevServer = new AlexaDevServer(serverless, options)
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless, options)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return sendAlexaRequest(5007, 'MyAlexaSkill').then(result => {
       expect(result.ok).equal(true)
       return result.json()
@@ -257,9 +279,9 @@ describe('index.js', () => {
         events: ['blub']
       }
     }
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5008})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless, {port: 5008})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     // Expect rejection of request as no server is running on port 5008
     return expect(sendAlexaRequest(5008)).to.be.rejected
   })
@@ -275,9 +297,9 @@ describe('index.js', () => {
         events: [{http: 'GET /'}]
       }
     }
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5009})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
       sendAlexaRequest(5009).then(result =>
         expect(result.ok).equal(false)
@@ -298,10 +320,10 @@ describe('index.js', () => {
     }
     serverless.service.plugins = ['serverless-webpack']
 
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5009})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
-    expect(alexaDevServer.server.functions[0].handlerModulePath).equal(expectedPath)
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    expect(localDevServer.server.functions[0].handlerModulePath).equal(expectedPath)
   })
 
   it('should host static files if the config is present', () => {
@@ -317,10 +339,10 @@ describe('index.js', () => {
       localDevStaticFolder: '/static'
     }
 
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5009})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
-    expect(alexaDevServer.server.staticFolder).equal(expectedPath)
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    expect(localDevServer.server.staticFolder).equal(expectedPath)
   })
 
   it('should not host static files if the config is not present', () => {
@@ -333,10 +355,10 @@ describe('index.js', () => {
     serverless.service.plugins = ['serverless-webpack']
     if (serverless.service) delete serverless.service.custom
 
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5009})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
-    expect(alexaDevServer.server.staticFolder).equal(false)
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    expect(localDevServer.server.staticFolder).equal(false)
   })
 
   it('should prefix the paths if the basePath is present', () => {
@@ -352,9 +374,26 @@ describe('index.js', () => {
     }
     let expectedPath = '/http/' + serverless.service.custom.customDomain.basePath
 
-    alexaDevServer = new AlexaDevServer(serverless, {port: 5009})
-    alexaDevServer.hooks['local-dev-server:loadEnvVars']()
-    alexaDevServer.hooks['local-dev-server:start']()
-    expect(alexaDevServer.server.functions[0].endpoints[0].path).equal(expectedPath)
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    expect(localDevServer.server.functions[0].endpoints[0].path).equal(expectedPath)
+  })
+
+  it('should throw an exception if cron is less than 6 parts', () => {
+    serverless.service.functions = {
+      'MySchedule': {
+        handler: 'lambda-handler.schedule',
+        events: [{schedule: 'cron(0 18 ? * MON-FRI)'}]
+      }
+    }
+    serverless.service.plugins = ['serverless-domain-manager']
+    serverless.service.custom = {
+      customDomain: {basePath: 'members'}
+    }
+
+    localDevServer = new LocalDevServer(serverless, {port: 5009})
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    expect(localDevServer.hooks['local-dev-server:start']).to.throw()
   })
 })
