@@ -10,6 +10,7 @@ const AwsProvider = require('serverless/lib/plugins/aws/provider/awsProvider')
 const LocalDevServer = require('../src')
 const path = require('path')
 const fs = require('fs')
+const moment = require('moment')
 const helloMp3 = fs.readFileSync(path.join(__dirname, 'HelloEnglish-Joanna.0aa7a6dc7f1de9ac48769f366c6f447f9051db57.mp3'))
 
 chai.use(chaiAsPromised)
@@ -409,11 +410,13 @@ describe('index.js', () => {
       localDevScheduleShowLocalTime: true
     }
 
+    let localHour = moment().utc().hours(8).minutes(0).local().format('HH')
+
     localDevServer = new LocalDevServer(serverless)
     localDevServer.hooks['local-dev-server:loadEnvVars']()
     localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
-      sendScheduleGetRequest(5005, 'MySchedule/cron-At-01:00-AM-LOCAL', {}).then(result => {
+      sendScheduleGetRequest(5005, `MySchedule/cron-At-${localHour}:00-AM-LOCAL`, {}).then(result => {
         expect(result.status).equal(200)
       })
     ])
