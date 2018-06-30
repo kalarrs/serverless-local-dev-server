@@ -402,7 +402,10 @@ describe('index.js', () => {
     serverless.service.functions = {
       'MySchedule': {
         handler: 'lambda-handler.schedule',
-        events: [{schedule: 'cron(0 8 * * ? *)'}]
+        events: [
+          {schedule: 'cron(0 1 * * ? *)'}, {schedule: 'cron(0 8 * * ? *)'},
+          {schedule: 'cron(0 15 * * ? *)'}, {schedule: 'cron(0 22 * * ? *)'}
+        ]
       }
     }
     serverless.service.plugins = ['serverless-domain-manager']
@@ -410,13 +413,25 @@ describe('index.js', () => {
       localDevScheduleShowLocalTime: true
     }
 
-    let localHour = moment().utc().hours(8).minutes(0).local().format('HH')
+    let [hour1, meridiem1] = moment().utc().hours(1).minutes(0).local().format('hh A').split(' ')
+    let [hour2, meridiem2] = moment().utc().hours(8).minutes(0).local().format('hh A').split(' ')
+    let [hour3, meridiem3] = moment().utc().hours(15).minutes(0).local().format('hh A').split(' ')
+    let [hour4, meridiem4] = moment().utc().hours(22).minutes(0).local().format('hh A').split(' ')
 
     localDevServer = new LocalDevServer(serverless)
     localDevServer.hooks['local-dev-server:loadEnvVars']()
     localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
-      sendScheduleGetRequest(5005, `MySchedule/cron-At-${localHour}:00-AM-LOCAL`, {}).then(result => {
+      sendScheduleGetRequest(5005, `MySchedule/cron-At-${hour1}:00-${meridiem1}-LOCAL`, {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, `MySchedule/cron-At-${hour2}:00-${meridiem2}-LOCAL`, {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, `MySchedule/cron-At-${hour3}:00-${meridiem3}-LOCAL`, {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendScheduleGetRequest(5005, `MySchedule/cron-At-${hour4}:00-${meridiem4}-LOCAL`, {}).then(result => {
         expect(result.status).equal(200)
       })
     ])
