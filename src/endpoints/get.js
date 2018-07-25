@@ -19,7 +19,8 @@ module.exports = (func) => {
         return null
     }
   }).filter(_ =>
-    !!mappings[_.type]
+      !!mappings[_.type]
+    // NOTE : Could filter out the the schedules that are not enabled here. Seems ghetto.
   ).map(_ => {
     let endpoint = new mappings[_.type](_.config, func)
     endpoint.type = _.type
