@@ -130,7 +130,7 @@ class Server {
 
       // Execute it!
       let result = handle(event, context, callback)
-      isPromise = result instanceof Promise
+      isPromise = result instanceof Promise || typeof result.then === 'function'
       if (isPromise) resolve(result)
     })
   }
