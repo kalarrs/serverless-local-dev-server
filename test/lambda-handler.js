@@ -127,6 +127,14 @@ module.exports.schedule = (request, context) => {
   }
 }
 
+module.exports.cloudWatchLog = (request, context) => {
+  if (!(request.awslogs && typeof request.awslogs.data === 'string')) {
+    context.fail(new Error('event should be a mock Amazon CloudWatch Logs event'))
+  } else {
+    context.succeed()
+  }
+}
+
 module.exports.scheduleCustomInput = (request, context) => {
   if (request.key !== 'value') {
     context.fail(new Error('event should be custom event'))
