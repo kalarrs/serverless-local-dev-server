@@ -53,6 +53,17 @@ describe('index.js', () => {
     return fetch(`http://localhost:${port}/cloudwatch-logs/${path}`)
   }
 
+  const sendCloudWatchLogsPostRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/cloudwatch-logs/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: '{"awslogs":{"data":"H4sIAAAAAAAAAHWPwQqCQBCGX0Xm7EFtK+smZBEUgXoLCdMhFtKV3akI8d0bLYmibvPPN3wz00CJxmQnTO41whwWQRIctmEcB6sQbFC3CjW3XW8kxpOpP+OC22d1Wml1qZkQGtoMsScxaczKN3plG8zlaHIta5KqWsozoTYw3/djzwhpLwivWFGHGpAFe7DL68JlBUk+l7KSN7tCOEJ4M3/qOI49vMHj+zCKdlFqLaU2ZHV2a4Ct/an0/ivdX8oYc1UVX860fQDQiMdxRQEAAA=="}}'
+    })
+  }
+
   const sendHttpPostRequest = (port, path) => {
     return fetch(`http://localhost:${port}/http/${path}`, {
       method: 'POST',
@@ -193,6 +204,9 @@ describe('index.js', () => {
         expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsPostRequest(5005, 'MyCloudWatchLogs/group1', {}).then(result => {
         expect(result.status).equal(200)
       }),
       sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogs/group1', {}).then(result => {
