@@ -10,7 +10,7 @@ class ScheduleEndpoint extends Endpoint {
     if (typeof scheduleConfig === 'string') {
       scheduleConfig = {rate: scheduleConfig}
     }
-    this.method = 'GET'
+    this.method = scheduleConfig.method || 'GET'
     this.input = scheduleConfig.input || null
 
     let rateInEnglish = ''
@@ -35,7 +35,10 @@ class ScheduleEndpoint extends Endpoint {
   }
 
   getLambdaEvent (request) {
-    if (request.method === 'POST') return JSON.stringify(request.body, null, '  ')
+    if (request.method === 'POST') {
+      // Pass-through
+      return request.body
+    }
 
     return this.input || {
       account: '123456789012',

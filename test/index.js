@@ -38,6 +38,17 @@ describe('index.js', () => {
     return fetch(`http://localhost:${port}/schedule/${path}`)
   }
 
+  const sendSchedulePostRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/schedule/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: '{"account":"123456789012","region":"us-east-1","detail":{},"detail-type":"Scheduled Event","source":"aws.events","time":"2018-10-11T22:12:48.774Z","id":"cdc73f9d-aea9-11e3-9d5a-835b769c0d9c","resources":["arn:aws:events:us-east-1:123456789012:rule/my-schedule"]}'
+    })
+  }
+
   const sendHttpPostRequest = (port, path) => {
     return fetch(`http://localhost:${port}/http/${path}`, {
       method: 'POST',
@@ -135,6 +146,9 @@ describe('index.js', () => {
       }),
       sendHttpPostRequest(5005, 'shorthand', {}).then(result => {
         expect(result.status).equal(204)
+      }),
+      sendSchedulePostRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
+        expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
         expect(result.status).equal(200)
