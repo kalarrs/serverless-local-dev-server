@@ -38,6 +38,10 @@ describe('index.js', () => {
     return fetch(`http://localhost:${port}/schedule/${path}`)
   }
 
+  const sendCloudWatchLogsGetRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/cloudwatch-logs/${path}`)
+  }
+
   const sendHttpPostRequest = (port, path) => {
     return fetch(`http://localhost:${port}/http/${path}`, {
       method: 'POST',
@@ -103,6 +107,20 @@ describe('index.js', () => {
         handler: 'lambda-handler.scheduleCustomInput',
         events: [{schedule: {rate: 'rate(10 minute)', enabled: true, input: {key: 'value', arr: [1, 2]}}}]
       },
+      'MyCloudWatchLogs': {
+        handler: 'lambda-handler.cloudWatchLog',
+        events: [
+          {cloudwatchLog: 'group1'}, {cloudwatchLog: '/group2'}, {cloudwatchLog: '/group3/subpath'}
+        ]
+      },
+      'MyCloudWatchLogsObject': {
+        handler: 'lambda-handler.cloudWatchLog',
+        events: [
+          {cloudwatchLog: {logGroup: 'group1', filter: '$.userIdentity.type = Root'}},
+          {cloudwatchLog: {logGroup: '/group2', filter: '$.userIdentity.type = Root'}},
+          {cloudwatchLog: {logGroup: '/group3/subpath', filter: '$.userIdentity.type = Root'}}
+        ]
+      }
     }
     localDevServer = new LocalDevServer(serverless)
     localDevServer.hooks['local-dev-server:loadEnvVars']()
@@ -161,6 +179,24 @@ describe('index.js', () => {
         expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogs/group1', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogs/group2', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogs/group3/subpath', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogsObject/group1', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogsObject/group2', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogsObject/group3/subpath', {}).then(result => {
         expect(result.status).equal(200)
       })
     ])
