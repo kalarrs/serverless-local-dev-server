@@ -19,7 +19,7 @@ class Server {
   // Starts the server
   start (port) {
     if (this.functions.length === 0) {
-      this.log('No Lambdas with Alexa-Skill or HTTP events found')
+      this.log('No Lambda(s) with compatible events found')
       return
     }
     this.app = Express()
