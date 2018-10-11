@@ -38,8 +38,30 @@ describe('index.js', () => {
     return fetch(`http://localhost:${port}/schedule/${path}`)
   }
 
+  const sendSchedulePostRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/schedule/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: '{"account":"123456789012","region":"us-east-1","detail":{},"detail-type":"Scheduled Event","source":"aws.events","time":"2018-10-11T22:12:48.774Z","id":"cdc73f9d-aea9-11e3-9d5a-835b769c0d9c","resources":["arn:aws:events:us-east-1:123456789012:rule/my-schedule"]}'
+    })
+  }
+
   const sendCloudWatchLogsGetRequest = (port, path) => {
     return fetch(`http://localhost:${port}/cloudwatch-logs/${path}`)
+  }
+
+  const sendCloudWatchLogsPostRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/cloudwatch-logs/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: '{"awslogs":{"data":"H4sIAAAAAAAAAHWPwQqCQBCGX0Xm7EFtK+smZBEUgXoLCdMhFtKV3akI8d0bLYmibvPPN3wz00CJxmQnTO41whwWQRIctmEcB6sQbFC3CjW3XW8kxpOpP+OC22d1Wml1qZkQGtoMsScxaczKN3plG8zlaHIta5KqWsozoTYw3/djzwhpLwivWFGHGpAFe7DL68JlBUk+l7KSN7tCOEJ4M3/qOI49vMHj+zCKdlFqLaU2ZHV2a4Ct/an0/ivdX8oYc1UVX860fQDQiMdxRQEAAA=="}}'
+    })
   }
 
   const sendHttpPostRequest = (port, path) => {
@@ -154,6 +176,9 @@ describe('index.js', () => {
       sendHttpPostRequest(5005, 'shorthand', {}).then(result => {
         expect(result.status).equal(204)
       }),
+      sendSchedulePostRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
       sendScheduleGetRequest(5005, 'MySchedule/rate-1-day', {}).then(result => {
         expect(result.status).equal(200)
       }),
@@ -179,6 +204,9 @@ describe('index.js', () => {
         expect(result.status).equal(200)
       }),
       sendScheduleGetRequest(5005, 'MyScheduleCustomInput/rate-10-minute', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendCloudWatchLogsPostRequest(5005, 'MyCloudWatchLogs/group1', {}).then(result => {
         expect(result.status).equal(200)
       }),
       sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogs/group1', {}).then(result => {
