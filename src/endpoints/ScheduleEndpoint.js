@@ -35,6 +35,8 @@ class ScheduleEndpoint extends Endpoint {
   }
 
   getLambdaEvent (request) {
+    if (request.method === 'POST') return JSON.stringify(request.body, null, '  ')
+
     return this.input || {
       account: '123456789012',
       region: 'us-east-1',
