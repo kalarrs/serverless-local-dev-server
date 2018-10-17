@@ -4,7 +4,8 @@ const mappings = {
   'alexaSkill': require('./AlexaSkillEndpoint'),
   'http': require('./HttpEndpoint'),
   'schedule': require('./ScheduleEndpoint'),
-  'cloudwatchLog': require('./CloudWatchLogEndpoint')
+  'cloudwatchLog': require('./CloudWatchLogEndpoint'),
+  'sqs': require('./SqsEndpoint')
 }
 
 module.exports = (func) => {

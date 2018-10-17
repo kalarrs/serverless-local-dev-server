@@ -1,6 +1,7 @@
 'use strict'
 
 const Server = require('./Server.js')
+const Polling = require('./Polling.js')
 
 class ServerlessLocalDevServerPlugin {
   constructor (serverless, options) {
@@ -36,6 +37,10 @@ class ServerlessLocalDevServerPlugin {
     this.server.setConfiguration(this.serverless.service, this.serverless.config.servicePath)
     let customPort = this.serverless.service && this.serverless.service.custom && this.serverless.service.custom.localDevPort
     this.server.start(customPort || this.options.port || 5005)
+
+    this.polling = new Polling()
+    this.polling.setConfiguration()
+    this.polling.start()
   }
 }
 
