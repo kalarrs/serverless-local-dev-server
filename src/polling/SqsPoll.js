@@ -14,7 +14,7 @@ class SqsPoll extends Poll {
   }
 
   toString () {
-    return `SQS POLLING: ${this.functionName} ${this.queueName}`
+    return `SQS: ${this.functionName} ${this.queueName}`
   }
 }
 

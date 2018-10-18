@@ -3,7 +3,6 @@
 const path = require('path')
 const dotenv = require('dotenv')
 const getPolling = require('./polling/get')
-const {SQS} = require('aws-sdk')
 const SqsPoll = require('./polling/SqsPoll')
 
 class Polling {
@@ -23,9 +22,12 @@ class Polling {
     this.isRunning = true
 
     const sqsPolls = this.functions.filter(f => f.polls.find(p => p instanceof SqsPoll))
-    if (sqsPolls.length) this.sqs = new SQS()
+    if (sqsPolls.length) {
+      const awsCreds = this.serverless.providers.aws.getCredentials()
+      this.sqs = new this.serverless.providers.aws.sdk.SQS(awsCreds)
+    }
 
-    this.functions.forEach(func => func.endpoints.forEach(endpoint => this._attachPoll(func, endpoint)))
+    this.functions.forEach(func => func.polls.forEach(poll => this._attachPoll(func, poll)))
   }
 
   stop () {
@@ -33,7 +35,9 @@ class Polling {
   }
 
   // Sets functions, including endpoints, using the serverless config and service path
-  setConfiguration (serverlessConfig, servicePath) {
+  setConfiguration (serverlessConfig, servicePath, serverless) {
+    this.serverless = serverless
+
     this.functions = Object.keys(serverlessConfig.functions).map(name => {
       const functionConfig = serverlessConfig.functions[name]
       const [handlerSrcFile, handlerFunctionName] = functionConfig.handler.split('.')
@@ -59,39 +63,44 @@ class Polling {
   async _attachPoll (func, poll) {
     if (poll instanceof SqsPoll) {
       const queueUrl = await this.sqs.getQueueUrl({QueueName: poll.queueName}).promise()
-      this.log(`${poll}`)
-
       do {
-        const {Messages} = await this.sqs.receiveMessage({
-          AttributeNames: ['All'],
-          MaxNumberOfMessages: 1,
-          MessageAttributeNames: ['All'],
-          QueueUrl: queueUrl,
-          WaitTimeSeconds: 10
-        })
+        try {
+          const {Messages} = await this.sqs.receiveMessage({
+            AttributeNames: ['All'],
+            MaxNumberOfMessages: 1,
+            MessageAttributeNames: ['All'],
+            QueueUrl: queueUrl,
+            WaitTimeSeconds: 10
+          })
 
-        let event = poll.getEvent({
-          Records: Messages.map(m => ({
-            messageId: m.MessageId,
-            receiptHandle: m.ReceiptHandle,
-            body: m.Body,
-            attributes: m.Attributes,
-            messageAttributes: m.MessageAttributes,
-            md5OfBody: m.Md5OfBody,
-            eventSource: m.EventSource,
-            eventSourceARN: m.EventSourceARN,
-            awsRegion: m.AwsRegion
-          }))
-        })
-        this._executeLambdaHandler(func, event).then(result => {
-          this.log(' ➡ Success')
-          if (process.env.SLS_DEBUG) console.info(result)
-          poll.handleSuccess(result)
-        }).catch(error => {
-          this.log(` ➡ Failure: ${error.message}`)
-          if (process.env.SLS_DEBUG) console.error(error.stack)
-          poll.handleFailure(error)
-        })
+          if (!(Messages && Array.isArray(Messages) && Messages.length)) break
+          this.log(`${poll}`)
+
+          let event = poll.getEvent({
+            Records: Messages.map(m => ({
+              messageId: m.MessageId,
+              receiptHandle: m.ReceiptHandle,
+              body: m.Body,
+              attributes: m.Attributes,
+              messageAttributes: m.MessageAttributes,
+              md5OfBody: m.Md5OfBody,
+              eventSource: m.EventSource,
+              eventSourceARN: m.EventSourceARN,
+              awsRegion: m.AwsRegion
+            }))
+          })
+          this._executeLambdaHandler(func, event).then(result => {
+            this.log(' ➡ Success')
+            if (process.env.SLS_DEBUG) console.info(result)
+            poll.handleSuccess(result)
+          }).catch(error => {
+            this.log(` ➡ Failure: ${error.message}`)
+            if (process.env.SLS_DEBUG) console.error(error.stack)
+            poll.handleFailure(error)
+          })
+        } catch (e) {
+          console.log('ERROR', e)
+        }
       } while (this.isRunning)
     }
   }

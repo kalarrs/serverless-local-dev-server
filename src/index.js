@@ -39,7 +39,8 @@ class ServerlessLocalDevServerPlugin {
     this.server.start(customPort || this.options.port || 5005)
 
     this.polling = new Polling()
-    this.polling.setConfiguration()
+    this.polling.log = this.serverless.cli.log.bind(this.serverless.cli)
+    this.polling.setConfiguration(this.serverless.service, this.serverless.config.servicePath, this.serverless)
     this.polling.start()
   }
 }
