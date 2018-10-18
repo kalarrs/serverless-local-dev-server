@@ -71,11 +71,12 @@ class Polling {
 
   async _attachPoll (func, poll) {
     if (poll instanceof SqsPoll) {
+      // https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example.html
       const {QueueUrl} = await this.sqs.getQueueUrl({QueueName: poll.queueName}).promise()
       do {
         const {Messages} = await this.sqs.receiveMessage({
           AttributeNames: ['All'],
-          MaxNumberOfMessages: 1,
+          MaxNumberOfMessages: 10, // Lambda defaults to 10
           MessageAttributeNames: ['All'],
           QueueUrl,
           WaitTimeSeconds: 10
@@ -101,6 +102,9 @@ class Polling {
           this.log(' ➡ Success')
           if (process.env.SLS_DEBUG) console.info(result)
           poll.handleSuccess(result)
+          // NOTE : AWS sqs event trigger removes message from the queue, so we shall too!
+          const entries = event.Records.map(record => ({Id: record.messageId, ReceiptHandle: record.receiptHandle}))
+          return this.sqs.deleteMessageBatch({Entries: entries, QueueUrl}).promise()
         }).catch(error => {
           this.log(` ➡ Failure: ${error.message}`)
           if (process.env.SLS_DEBUG) console.error(error.stack)
