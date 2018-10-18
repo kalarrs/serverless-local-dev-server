@@ -25,6 +25,15 @@ class Polling {
     if (sqsPolls.length) {
       const awsCreds = this.serverless.providers.aws.getCredentials()
       this.sqs = new this.serverless.providers.aws.sdk.SQS(awsCreds)
+
+      this.log('----')
+      sqsPolls.forEach(func => {
+        this.log(`${func.name}:`)
+        func.polls.filter(p => p instanceof SqsPoll).forEach(poll => {
+          this.log(`  POLL ${poll.arn}`)
+        })
+      })
+      this.log('----')
     }
 
     this.functions.forEach(func => func.polls.forEach(poll => this._attachPoll(func, poll)))
@@ -62,45 +71,41 @@ class Polling {
 
   async _attachPoll (func, poll) {
     if (poll instanceof SqsPoll) {
-      const queueUrl = await this.sqs.getQueueUrl({QueueName: poll.queueName}).promise()
+      const {QueueUrl} = await this.sqs.getQueueUrl({QueueName: poll.queueName}).promise()
       do {
-        try {
-          const {Messages} = await this.sqs.receiveMessage({
-            AttributeNames: ['All'],
-            MaxNumberOfMessages: 1,
-            MessageAttributeNames: ['All'],
-            QueueUrl: queueUrl,
-            WaitTimeSeconds: 10
-          })
+        const {Messages} = await this.sqs.receiveMessage({
+          AttributeNames: ['All'],
+          MaxNumberOfMessages: 1,
+          MessageAttributeNames: ['All'],
+          QueueUrl,
+          WaitTimeSeconds: 10
+        }).promise()
 
-          if (!(Messages && Array.isArray(Messages) && Messages.length)) break
-          this.log(`${poll}`)
+        if (!(Messages && Array.isArray(Messages) && Messages.length)) continue
+        this.log(`${poll}`)
 
-          let event = poll.getEvent({
-            Records: Messages.map(m => ({
-              messageId: m.MessageId,
-              receiptHandle: m.ReceiptHandle,
-              body: m.Body,
-              attributes: m.Attributes,
-              messageAttributes: m.MessageAttributes,
-              md5OfBody: m.Md5OfBody,
-              eventSource: m.EventSource,
-              eventSourceARN: m.EventSourceARN,
-              awsRegion: m.AwsRegion
-            }))
-          })
-          this._executeLambdaHandler(func, event).then(result => {
-            this.log(' ➡ Success')
-            if (process.env.SLS_DEBUG) console.info(result)
-            poll.handleSuccess(result)
-          }).catch(error => {
-            this.log(` ➡ Failure: ${error.message}`)
-            if (process.env.SLS_DEBUG) console.error(error.stack)
-            poll.handleFailure(error)
-          })
-        } catch (e) {
-          console.log('ERROR', e)
-        }
+        let event = poll.getEvent({
+          Records: Messages.map(m => ({
+            messageId: m.MessageId,
+            receiptHandle: m.ReceiptHandle,
+            body: m.Body,
+            attributes: m.Attributes,
+            messageAttributes: m.MessageAttributes,
+            md5OfBody: m.Md5OfBody,
+            eventSource: m.EventSource,
+            eventSourceARN: m.EventSourceARN,
+            awsRegion: m.AwsRegion
+          }))
+        })
+        this._executeLambdaHandler(func, event).then(result => {
+          this.log(' ➡ Success')
+          if (process.env.SLS_DEBUG) console.info(result)
+          poll.handleSuccess(result)
+        }).catch(error => {
+          this.log(` ➡ Failure: ${error.message}`)
+          if (process.env.SLS_DEBUG) console.error(error.stack)
+          poll.handleFailure(error)
+        })
       } while (this.isRunning)
     }
   }
