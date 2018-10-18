@@ -11,7 +11,7 @@ class Polling {
     this.log = console.log
   }
 
-  // Starts the server
+  // Starts the polling
   start () {
     if (this.functions.length === 0) {
       this.isRunning = false
