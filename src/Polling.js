@@ -3,6 +3,8 @@
 const path = require('path')
 const dotenv = require('dotenv')
 const getPolling = require('./polling/get')
+const {SQS} = require('aws-sdk')
+const SqsPoll = require('./polling/SqsPoll')
 
 class Polling {
   constructor () {
@@ -13,10 +15,21 @@ class Polling {
   // Starts the server
   start () {
     if (this.functions.length === 0) {
+      this.isRunning = false
       this.log('No Lambda(s) with compatible events found')
       return
     }
+
+    this.isRunning = true
+
+    const sqsPolls = this.functions.filter(f => f.polls.find(p => p instanceof SqsPoll))
+    if (sqsPolls.length) this.sqs = new SQS()
+
     this.functions.forEach(func => func.endpoints.forEach(endpoint => this._attachPoll(func, endpoint)))
+  }
+
+  stop () {
+    this.isRunning = false
   }
 
   // Sets functions, including endpoints, using the serverless config and service path
@@ -37,34 +50,50 @@ class Polling {
         environment: Object.assign({}, serverlessConfig.provider.environment, functionConfig.environment, this.customEnvironment)
       }
     }).map(func =>
-      Object.assign({}, func, {endpoints: getPolling(func)})
+      Object.assign({}, func, {polls: getPolling(func)})
     ).filter(func =>
-      func.endpoints.length > 0
+      func.polls.length > 0
     )
   }
 
-  // Attaches HTTP endpoint to Express
-  _attachPoll (func, endpoint) {
-    // Validate method and path
-    /* istanbul ignore next */
-    if (!endpoint.method || !endpoint.path) {
-      return this.log(`Endpoint ${endpoint.type} for function ${func.name} has no method or path`)
+  async _attachPoll (func, poll) {
+    if (poll instanceof SqsPoll) {
+      const queueUrl = await this.sqs.getQueueUrl({QueueName: poll.queueName}).promise()
+      this.log(`${poll}`)
+
+      do {
+        const {Messages} = await this.sqs.receiveMessage({
+          AttributeNames: ['All'],
+          MaxNumberOfMessages: 1,
+          MessageAttributeNames: ['All'],
+          QueueUrl: queueUrl,
+          WaitTimeSeconds: 10
+        })
+
+        let event = poll.getEvent({
+          Records: Messages.map(m => ({
+            messageId: m.MessageId,
+            receiptHandle: m.ReceiptHandle,
+            body: m.Body,
+            attributes: m.Attributes,
+            messageAttributes: m.MessageAttributes,
+            md5OfBody: m.Md5OfBody,
+            eventSource: m.EventSource,
+            eventSourceARN: m.EventSourceARN,
+            awsRegion: m.AwsRegion
+          }))
+        })
+        this._executeLambdaHandler(func, event).then(result => {
+          this.log(' ➡ Success')
+          if (process.env.SLS_DEBUG) console.info(result)
+          poll.handleSuccess(result)
+        }).catch(error => {
+          this.log(` ➡ Failure: ${error.message}`)
+          if (process.env.SLS_DEBUG) console.error(error.stack)
+          poll.handleFailure(error)
+        })
+      } while (this.isRunning)
     }
-    // Add HTTP endpoint to Express
-    this.app[endpoint.method.toLowerCase()](endpoint.path, (request, response) => {
-      this.log(`${endpoint}`)
-      // Execute Lambda with corresponding event, forward response to Express
-      let lambdaEvent = endpoint.getLambdaEvent(request)
-      this._executeLambdaHandler(func, lambdaEvent).then(result => {
-        this.log(' ➡ Success')
-        if (process.env.SLS_DEBUG) console.info(result)
-        endpoint.handleLambdaSuccess(response, result)
-      }).catch(error => {
-        this.log(` ➡ Failure: ${error.message}`)
-        if (process.env.SLS_DEBUG) console.error(error.stack)
-        endpoint.handleLambdaFailure(response, error)
-      })
-    })
   }
 
   // Loads and executes the Lambda handler

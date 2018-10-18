@@ -9,7 +9,7 @@ class SqsEndpoint extends Endpoint {
       sqsConfig = {arn: sqsConfig}
     }
     this.method = sqsConfig.method || 'GET'
-    this.path = '/cloudwatch-logs/' + func.name + '/' + sqsConfig.arn.replace(/.*?:([^:]+)$/, '$1')
+    this.path = '/sqs/' + func.name + '/' + sqsConfig.arn.replace(/.*?:([^:]+)$/, '$1')
   }
 
   getLambdaEvent (request) {
@@ -19,9 +19,24 @@ class SqsEndpoint extends Endpoint {
     }
 
     return {
-      awslogs: {
-        data: 'H4sIAAAAAAAAAHWPwQqCQBCGX0Xm7EFtK+smZBEUgXoLCdMhFtKV3akI8d0bLYmibvPPN3wz00CJxmQnTO41whwWQRIctmEcB6sQbFC3CjW3XW8kxpOpP+OC22d1Wml1qZkQGtoMsScxaczKN3plG8zlaHIta5KqWsozoTYw3/djzwhpLwivWFGHGpAFe7DL68JlBUk+l7KSN7tCOEJ4M3/qOI49vMHj+zCKdlFqLaU2ZHV2a4Ct/an0/ivdX8oYc1UVX860fQDQiMdxRQEAAA=='
-      }
+      Records: [
+        {
+          messageId: '19dd0b57-b21e-4ac1-bd88-01bbb068cb78',
+          receiptHandle: 'MessageReceiptHandle',
+          body: 'Hello from SQS!',
+          attributes: {
+            ApproximateReceiveCount: '1',
+            SentTimestamp: '1523232000000',
+            SenderId: '123456789012',
+            ApproximateFirstReceiveTimestamp: '1523232000001'
+          },
+          messageAttributes: {},
+          md5OfBody: '7b270e59b47ff90a553787216d55d91d',
+          eventSource: 'aws:sqs',
+          eventSourceARN: 'arn:aws:sqs:us-west-2:123456789012:MyQueue',
+          awsRegion: 'us-west-2'
+        }
+      ]
     }
   }
 
