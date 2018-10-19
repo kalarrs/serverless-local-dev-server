@@ -38,10 +38,10 @@ class ServerlessLocalDevServerPlugin {
     let customPort = this.serverless.service && this.serverless.service.custom && this.serverless.service.custom.localDevPort
     this.server.start(customPort || this.options.port || 5005)
 
-    this.polling = new Polling()
-    this.polling.log = this.serverless.cli.log.bind(this.serverless.cli)
-    this.polling.setConfiguration(this.serverless.service, this.serverless.config.servicePath, this.serverless)
-    this.polling.start()
+    // this.polling = new Polling()
+    // this.polling.log = this.serverless.cli.log.bind(this.serverless.cli)
+    // this.polling.setConfiguration(this.serverless.service, this.serverless.config.servicePath, this.serverless)
+    // this.polling.start()
   }
 }
 
