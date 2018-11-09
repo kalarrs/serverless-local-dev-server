@@ -4,7 +4,8 @@ const mappings = {
   'alexaSkill': require('./AlexaSkillEndpoint'),
   'http': require('./HttpEndpoint'),
   'schedule': require('./ScheduleEndpoint'),
-  'cloudwatchLog': require('./CloudWatchLogEndpoint')
+  'cloudwatchLog': require('./CloudWatchLogEndpoint'),
+  'sqs': require('./SqsEndpoint')
 }
 
 module.exports = (func) => {
@@ -23,12 +24,17 @@ module.exports = (func) => {
       !!mappings[_.type]
     // NOTE : Could filter out the the schedules that are not enabled here. Seems ghetto.
   ).reduce((arr, _) => {
-    if (_.type === 'schedule' || _.type === 'cloudwatchLog') {
+    if (_.type === 'schedule' || _.type === 'sqs' || _.type === 'cloudwatchLog') {
       let config
       switch (_.type) {
         case 'schedule':
           config = typeof _.config === 'string'
             ? {rate: _.config}
+            : {..._.config}
+          break
+        case 'sqs':
+          config = typeof _.config === 'string'
+            ? {arn: _.config}
             : {..._.config}
           break
         case 'cloudwatchLog':
