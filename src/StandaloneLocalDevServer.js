@@ -21,6 +21,7 @@ class StandaloneLocalDevServer {
     // TODO : check if project-utils-plugin in in package.json :)
     this.options = {
       port: 5005,
+      configOverride: {},
       ...options
     }
     this.paths = {
@@ -71,7 +72,10 @@ class StandaloneLocalDevServer {
       await child.exec('sls export', {cwd: this.paths.project})
       return this.loadServerlessYaml()
     }
-    this.slsYaml = slsYaml
+    this.slsYaml = {
+      ...slsYaml,
+      ...this.options.configOverride
+    }
     // TODO : console.debug if flag
   }
 
