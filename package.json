@@ -1,8 +1,8 @@
 {
   "name": "@kalarrs/serverless-local-dev-server",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "engines": {
-    "node": ">=6.0"
+    "node": ">=8.10"
   },
   "description": "Develop Alexa-Skill and HTTP functions in Serverless without deploying to AWS",
   "author": "Kalarrs Topham",
@@ -28,10 +28,11 @@
     "lint": "standard"
   },
   "dependencies": {
-    "body-parser": "^1.18.2",
-    "cronstrue": "^1.31.0",
-    "dotenv": "^4.0.0",
-    "express": "^4.16.2"
+    "body-parser": "^1.18.3",
+    "cronstrue": "^1.58.0",
+    "dotenv": "^6.1.0",
+    "express": "^4.16.4",
+    "gulp": "gulpjs/gulp#v4.0.0-alpha.3"
   },
   "devDependencies": {
     "chai": "^4.1.2",
