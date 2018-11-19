@@ -12,6 +12,8 @@ class HttpEndpoint extends Endpoint {
     this.method = httpConfig.method
     this.resourcePath = httpConfig.path.replace(/\{([a-zA-Z_]+)\}/g, ':$1').replace(/(^\/|\/$)/g, '')
     this.path = this.resourcePath.length ? '/http/' + this.resourcePath : '/http'
+    if (typeof httpConfig.cors === 'string') this.cors = httpConfig.cors === 'true'
+    if (typeof httpConfig.cors === 'boolean') this.cors = httpConfig.cors
   }
 
   getLambdaEvent (request) {

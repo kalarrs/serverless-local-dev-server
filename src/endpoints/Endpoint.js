@@ -4,6 +4,7 @@ class Endpoint {
   constructor (eventConfig, func) {
     this.method = 'GET'
     this.path = ''
+    this.cors = false
   }
 
   /* istanbul ignore next */
