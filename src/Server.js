@@ -99,7 +99,8 @@ class Server {
       return this.log(`Endpoint ${endpoint.type} for function ${func.name} has no method or path`)
     }
     // Add HTTP endpoint to Express
-    const cb = (request, response) => {
+    if (endpoint.cors) this.app.options(endpoint.path, cors())
+    this.app[endpoint.method.toLowerCase()](endpoint.path, (request, response) => {
       this.log(`${endpoint}`)
       // Execute Lambda with corresponding event, forward response to Express
       let lambdaEvent = endpoint.getLambdaEvent(request)
@@ -112,10 +113,7 @@ class Server {
         if (process.env.SLS_DEBUG) console.error(error.stack)
         endpoint.handleLambdaFailure(response, error)
       })
-    }
-
-    if (endpoint.cors) this.app[endpoint.method.toLowerCase()](endpoint.path, cors(), cb)
-    else this.app[endpoint.method.toLowerCase()](endpoint.path, cb)
+    })
   }
 
   // Loads and executes the Lambda handler
