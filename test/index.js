@@ -75,6 +75,16 @@ describe('index.js', () => {
     })
   }
 
+  const sendHttpOptionsRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/http/${path}`, {
+      method: 'OPTIONS',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+  }
+
   beforeEach(() => {
     sandbox = sinon.sandbox.create()
     serverless = new Serverless()
@@ -148,6 +158,11 @@ describe('index.js', () => {
     localDevServer.hooks['local-dev-server:loadEnvVars']()
     localDevServer.hooks['local-dev-server:start']()
     return Promise.all([
+      sendHttpOptionsRequest(5005, 'shorthand', {}).then(result => {
+        expect(result.status).equal(200)
+        expect(result.headers._headers['allow'][0]).to.equal('GET,HEAD,POST')
+        return expect(result.headers._headers['access-control-allow-origin']).to.be.undefined
+      }),
       sendAlexaRequest(5005, 'MyAlexaSkill').then(result =>
         expect(result.ok).equal(true)
       ),
@@ -497,6 +512,61 @@ describe('index.js', () => {
       }),
       sendScheduleGetRequest(5005, `MySchedule/cron-At-${hour4}:00-${meridiem4}-LOCAL`, {}).then(result => {
         expect(result.status).equal(200)
+      })
+    ])
+  })
+
+  it('should return cors on all requests if custom localDevCors is set to true', () => {
+    serverless.service.functions = {
+      'MyShorthandHttpResource': {
+        handler: 'lambda-handler.httpPost',
+        events: [{http: 'POST shorthand'}]
+      }
+    }
+    serverless.service.custom = {
+      localDevCors: true
+    }
+
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    return Promise.all([
+      sendHttpOptionsRequest(5005, 'shorthand', {}).then(result => {
+        expect(result.headers._headers['access-control-allow-origin'][0]).equal('*')
+        expect(result.headers._headers['access-control-allow-methods'][0]).equal('GET,HEAD,PUT,PATCH,POST,DELETE')
+        expect(result.status).equal(204)
+      })
+    ])
+  })
+
+  it('should return cors on specific requests if cors is set to true on the http event', () => {
+    serverless.service.functions = {
+      'MyHttpResource': {
+        handler: 'lambda-handler.httpPost',
+        events: [{http: {method: 'POST', path: 'post-no-cors/'}}]
+      },
+      'MyCorsHttpResource': {
+        handler: 'lambda-handler.httpPost',
+        events: [{http: {method: 'POST', path: 'post-cors/', cors: true}}]
+      }
+    }
+    serverless.service.custom = {
+      localDevCors: false
+    }
+
+    localDevServer = new LocalDevServer(serverless)
+    localDevServer.hooks['local-dev-server:loadEnvVars']()
+    localDevServer.hooks['local-dev-server:start']()
+    return Promise.all([
+      sendHttpOptionsRequest(5005, 'post-no-cors', {}).then(result => {
+        expect(result.status).equal(200)
+        expect(result.headers._headers['allow'][0]).to.equal('POST')
+        return expect(result.headers._headers['access-control-allow-origin']).to.be.undefined
+      }),
+      sendHttpOptionsRequest(5005, 'post-cors', {}).then(result => {
+        expect(result.headers._headers['access-control-allow-origin'][0]).equal('*')
+        expect(result.headers._headers['access-control-allow-methods'][0]).equal('GET,HEAD,PUT,PATCH,POST,DELETE')
+        expect(result.status).equal(204)
       })
     ])
   })
