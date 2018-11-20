@@ -2,12 +2,16 @@
 
 const Express = require('express')
 const BodyParser = require('body-parser')
+const cors = require('cors')
 const path = require('path')
 const dotenv = require('dotenv')
 const getEndpoints = require('./endpoints/get')
 
 class Server {
-  constructor () {
+  constructor (options) {
+    this.options = {
+      cors: (options && (typeof options.cors === 'string' ? options.cors === 'true' : options.cors)) || false
+    }
     this.functions = []
     this.staticFolder = false
     this.log = console.log
@@ -23,6 +27,7 @@ class Server {
       return
     }
     this.app = Express()
+    if (this.options.cors) this.app.use(cors())
     this.app.use(BodyParser.json())
     this.functions.forEach(func =>
       func.endpoints.forEach(endpoint => this._attachEndpoint(func, endpoint))
@@ -94,6 +99,7 @@ class Server {
       return this.log(`Endpoint ${endpoint.type} for function ${func.name} has no method or path`)
     }
     // Add HTTP endpoint to Express
+    if (endpoint.cors) this.app.options(endpoint.path, cors())
     this.app[endpoint.method.toLowerCase()](endpoint.path, (request, response) => {
       this.log(`${endpoint}`)
       // Execute Lambda with corresponding event, forward response to Express

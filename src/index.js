@@ -29,7 +29,9 @@ class ServerlessLocalDevServerPlugin {
   }
 
   start () {
-    this.server = new Server()
+    this.server = new Server({
+      cors: this.serverless.service && this.serverless.service.custom && this.serverless.service.custom.localDevCors
+    })
     this.server.log = this.serverless.cli.log.bind(this.serverless.cli)
     if (this.serverless.service.provider.profile) this.server.customEnvironment.AWS_PROFILE = this.serverless.service.provider.profile
     if (this.serverless.service.provider.region) this.server.customEnvironment.AWS_REGION = this.serverless.service.provider.region
