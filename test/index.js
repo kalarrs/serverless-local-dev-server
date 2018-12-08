@@ -64,6 +64,21 @@ describe('index.js', () => {
     })
   }
 
+  const sendS3GetRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/s3/${path}`)
+  }
+
+  const sendS3PostRequest = (port, path) => {
+    return fetch(`http://localhost:${port}/s3/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: '{"Records":[{"eventVersion":"2.0","eventSource":"aws:s3","awsRegion":"us-west-2","eventTime":"1970-01-01T00:00:00.000Z","eventName":"ObjectRemoved:Delete","userIdentity":{"principalId":"EXAMPLE"},"requestParameters":{"sourceIPAddress":"127.0.0.1"},"responseElements":{"x-amz-request-id":"EXAMPLE123456789","x-amz-id-2":"EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"},"s3":{"s3SchemaVersion":"1.0","configurationId":"testConfigRule","bucket":{"name":"example-bucket","ownerIdentity":{"principalId":"EXAMPLE"},"arn":"arn:aws:s3:::example-bucket"},"object":{"key":"test/key","sequencer":"0A1B2C3D4E5F678901"}}}]}'
+    })
+  }
+
   const sendHttpPostRequest = (port, path) => {
     return fetch(`http://localhost:${port}/http/${path}`, {
       method: 'POST',
@@ -151,6 +166,40 @@ describe('index.js', () => {
           {cloudwatchLog: {logGroup: 'group1', filter: '$.userIdentity.type = Root'}},
           {cloudwatchLog: {logGroup: '/group2', filter: '$.userIdentity.type = Root'}},
           {cloudwatchLog: {logGroup: '/group3/subpath', filter: '$.userIdentity.type = Root'}}
+        ]
+      },
+      'MyS3': {
+        handler: 'lambda-handler.s3',
+        events: [
+          {s3: 'photos'}
+        ]
+      },
+      'MyS3Object': {
+        handler: 'lambda-handler.s3',
+        events: [
+          {s3: {bucket: 'photos1', event: 's3:ObjectCreated:*'}},
+          {s3: {bucket: 'photos2', event: 's3:ObjectRemoved:*'}},
+          {s3: {bucket: 'photos3', rules: {prefix: 'uploads/', suffix: '.jpg'}}},
+          {s3: {bucket: 'photos4', rules: {prefix: 'uploads/clients', suffix: '.jpg'}}},
+          {s3: {bucket: 'photos5', rules: {prefix: 'shared/'}}},
+          {s3: {bucket: 'photos6', rules: {suffix: '.mpg'}}}
+        ]
+      },
+      'MyExistingS3': {
+        handler: 'lambda-handler.s3',
+        events: [
+          {s3: 'puppies'}
+        ]
+      },
+      'MyExistingS3Object': {
+        handler: 'lambda-handler.s3',
+        events: [
+          {s3: {bucket: 'puppies1', event: 's3:ObjectCreated:*'}},
+          {s3: {bucket: 'puppies2', event: 's3:ObjectRemoved:*'}},
+          {s3: {bucket: 'puppies3', rules: {prefix: 'uploads/', suffix: '.jpg'}}},
+          {s3: {bucket: 'puppies4', rules: {prefix: 'uploads/clients', suffix: '.jpg'}}},
+          {s3: {bucket: 'puppies5', rules: {prefix: 'shared/'}}},
+          {s3: {bucket: 'puppies6', rules: {suffix: '.mpg'}}}
         ]
       }
     }
@@ -240,6 +289,54 @@ describe('index.js', () => {
         expect(result.status).equal(200)
       }),
       sendCloudWatchLogsGetRequest(5005, 'MyCloudWatchLogsObject/group3/subpath', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3PostRequest(5005, 'MyS3/all/photos', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3/all/photos', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/created/photos1', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/deleted/photos2', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/all/uploads/photos3/.jpg', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/all/uploads/clients/photos4/.jpg', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/all/shared/photos5', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyS3Object/all/photos6/.mpg', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3PostRequest(5005, 'MyExistingS3/all/puppies', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3/all/puppies', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/created/puppies1', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/deleted/puppies2', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/all/uploads/puppies3/.jpg', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/all/uploads/clients/puppies4/.jpg', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/all/shared/puppies5', {}).then(result => {
+        expect(result.status).equal(200)
+      }),
+      sendS3GetRequest(5005, 'MyExistingS3Object/all/puppies6/.mpg', {}).then(result => {
         expect(result.status).equal(200)
       })
     ])
