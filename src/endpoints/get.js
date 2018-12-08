@@ -26,7 +26,7 @@ module.exports = (func) => {
       !!mappings[_.type]
     // NOTE : Could filter out the the schedules that are not enabled here. Seems ghetto.
   ).reduce((arr, _) => {
-    if (_.type === 'schedule' || _.type === 'sqs' || _.type === 'cloudwatchLog') {
+    if (_.type === 'schedule' || _.type === 'sqs' || _.type === 'cloudwatchLog' || _.type === 's3' || _.type === 'existingS3') {
       let config
       switch (_.type) {
         case 'schedule':
@@ -42,6 +42,12 @@ module.exports = (func) => {
         case 'cloudwatchLog':
           config = typeof _.config === 'string'
             ? {logGroup: _.config}
+            : {..._.config}
+          break
+        case 's3':
+        case 'existingS3':
+          config = typeof _.config === 'string'
+            ? {bucket: _.config}
             : {..._.config}
           break
       }
