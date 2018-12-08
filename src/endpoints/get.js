@@ -1,11 +1,13 @@
 'use strict'
 
 const mappings = {
-  'alexaSkill': require('./AlexaSkillEndpoint'),
-  'http': require('./HttpEndpoint'),
-  'schedule': require('./ScheduleEndpoint'),
-  'cloudwatchLog': require('./CloudWatchLogEndpoint'),
-  'sqs': require('./SqsEndpoint')
+  alexaSkill: require('./AlexaSkillEndpoint'),
+  http: require('./HttpEndpoint'),
+  schedule: require('./ScheduleEndpoint'),
+  cloudwatchLog: require('./CloudWatchLogEndpoint'),
+  sqs: require('./SqsEndpoint'),
+  s3: require('./S3Endpoint'),
+  existingS3: require('./S3Endpoint')
 }
 
 module.exports = (func) => {

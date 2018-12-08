@@ -142,3 +142,11 @@ module.exports.scheduleCustomInput = (request, context) => {
     context.succeed()
   }
 }
+
+module.exports.s3 = (request, context) => {
+  if (request.Records[0].s3.bucket.name !== 'example-bucket') {
+    context.fail(new Error('event should be a mock AWS schedule s3 event'))
+  } else {
+    context.succeed()
+  }
+}
