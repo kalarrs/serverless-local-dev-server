@@ -36,6 +36,7 @@ class StandaloneLocalDevServer {
 
   async init () {
     await this.loadServerlessYaml()
+    this.processYaml()
 
     this.server = new Server()
 
@@ -80,7 +81,15 @@ class StandaloneLocalDevServer {
   }
 
   processYaml () {
-    console.log('processing yaml config :)')
+    if (this.slsYaml.provider.name === 'aws') {
+      const AWS = require('aws-sdk')
+      if (this.slsYaml.provider.profile) {
+        AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: this.slsYaml.provider.profile})
+      }
+      if (this.slsYaml.provider.region) {
+        AWS.config.update({region: this.slsYaml.provider.region})
+      }
+    }
   }
 
   async start () {
